@@ -6,7 +6,7 @@ import com.taskflow.model.Status;
 import com.taskflow.model.Task;
 import com.taskflow.repository.Repository;
 import com.taskflow.service.TaskService;
-import com.taskflow.testkit.TestRunner;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 /**
  * Tests para TaskService.
  *
@@ -22,100 +25,151 @@ import java.util.Optional;
  * dependan de que FileTaskRepository esté implementado. Así puedes testear la
  * lógica de negocio de forma aislada.
  */
-public final class TaskServiceTest {
+class TaskServiceTest {
 
-    public static void run(TestRunner t) {
-        System.out.println("== TaskServiceTest ==");
-
-        t.test("createTask con datos válidos devuelve Result.Ok y persiste", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void createTaskConDatosValidosDevuelveResultOkYPersiste() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             Result<Task> result = service.createTask("Comprar pan", "panadería",
                     priority("MEDIUM"), LocalDateTime.now().plusDays(1));
-            TestRunner.assertTrue(result.isOk(), "debería ser Ok");
-            TestRunner.assertEquals(1L, service.totalTasks(), "se persistió 1 tarea");
-        });
+            assertTrue(result.isOk(), "debería ser Ok");
+            assertEquals(1L, service.totalTasks(), "se persistió 1 tarea");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("createTask con título vacío devuelve Result.Err", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void createTaskConTituloVacioDevuelveResultErr() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             Result<Task> result = service.createTask("", "x", priority("LOW"), null);
-            TestRunner.assertFalse(result.isOk(), "título vacío debería ser Err");
-        });
+            assertFalse(result.isOk(), "título vacío debería ser Err");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("findById devuelve la tarea creada", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void findByIdDevuelveLaTareaCreada() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             Result<Task> created = service.createTask("Tarea", "d", priority("HIGH"), null);
             String id = ((Result.Ok<Task>) created).value().id();
             Optional<Task> found = service.findById(id);
-            TestRunner.assertTrue(found.isPresent(), "findById debería encontrarla");
-        });
+            assertTrue(found.isPresent(), "findById debería encontrarla");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("findByStatus filtra correctamente", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void findByStatusFiltraCorrectamente() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             service.createTask("A", "d", priority("LOW"), null);
             service.createTask("B", "d", priority("LOW"), null);
             List<Task> pending = service.findByStatus(status("PENDING"));
-            TestRunner.assertEquals(2, pending.size(), "ambas recién creadas están PENDING");
+            assertEquals(2, pending.size(), "ambas recién creadas están PENDING");
             List<Task> done = service.findByStatus(status("DONE"));
-            TestRunner.assertEquals(0, done.size(), "ninguna está DONE");
-        });
+            assertEquals(0, done.size(), "ninguna está DONE");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("findByPriority filtra por prioridad", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void findByPriorityFiltraPorPrioridad() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             service.createTask("A", "d", priority("URGENT"), null);
             service.createTask("B", "d", priority("LOW"), null);
-            TestRunner.assertEquals(1, service.findByPriority(priority("URGENT")).size(),
+            assertEquals(1, service.findByPriority(priority("URGENT")).size(),
                     "una sola URGENT");
-        });
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("search es case-insensitive en título y descripción", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void searchEsCaseInsensitiveEnTituloYDescripcion() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             service.createTask("Comprar Leche", "supermercado", priority("LOW"), null);
             service.createTask("Pagar luz", "EDESUR factura", priority("LOW"), null);
-            TestRunner.assertEquals(1, service.search("leche").size(), "busca en título");
-            TestRunner.assertEquals(1, service.search("edesur").size(), "busca en descripción");
-        });
+            assertEquals(1, service.search("leche").size(),  "busca en título");
+            assertEquals(1, service.search("edesur").size(), "busca en descripción");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("changeStatus aplica una transición válida", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void changeStatusAplicaTransicionValida() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             Result<Task> created = service.createTask("Tarea", "d", priority("LOW"), null);
             String id = ((Result.Ok<Task>) created).value().id();
             Result<Task> changed = service.changeStatus(id, status("IN_PROGRESS"));
-            TestRunner.assertTrue(changed.isOk(), "PENDING -> IN_PROGRESS debe ser Ok");
-            TestRunner.assertEquals(status("IN_PROGRESS"),
+            assertTrue(changed.isOk(), "PENDING -> IN_PROGRESS debe ser Ok");
+            assertEquals(status("IN_PROGRESS"),
                     service.findById(id).orElseThrow().status(), "estado actualizado");
-        });
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("changeStatus de id inexistente devuelve Err", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void changeStatusDeIdInexistenteDevuelveErr() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             Result<Task> changed = service.changeStatus("no-existe", status("DONE"));
-            TestRunner.assertFalse(changed.isOk(), "id inexistente debe ser Err");
-        });
+            assertFalse(changed.isOk(), "id inexistente debe ser Err");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("deleteTask elimina la tarea", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void deleteTaskEliminaLaTarea() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             Result<Task> created = service.createTask("Tarea", "d", priority("LOW"), null);
             String id = ((Result.Ok<Task>) created).value().id();
             Result<String> deleted = service.deleteTask(id);
-            TestRunner.assertTrue(deleted.isOk(), "delete debería ser Ok");
-            TestRunner.assertTrue(service.findById(id).isEmpty(), "ya no existe");
-        });
+            assertTrue(deleted.isOk(), "delete debería ser Ok");
+            assertTrue(service.findById(id).isEmpty(), "ya no existe");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("countByStatus cuenta agrupando por estado", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void countByStatusCuentaAgrupandoPorEstado() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             service.createTask("A", "d", priority("LOW"), null);
             service.createTask("B", "d", priority("LOW"), null);
             Map<Status, Long> counts = service.countByStatus();
-            TestRunner.assertEquals(2L, counts.getOrDefault(status("PENDING"), 0L),
+            assertEquals(2L, counts.getOrDefault(status("PENDING"), 0L),
                     "2 tareas PENDING");
-        });
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("listAll devuelve todas las tareas", () -> {
-            TaskService service = new TaskService(new InMemoryRepo());
+    @Test
+    void listAllDevuelveTodasLasTareas() {
+        TaskService service = new TaskService(new InMemoryRepo());
+        try {
             service.createTask("A", "d", priority("LOW"), null);
             service.createTask("B", "d", priority("HIGH"), null);
             List<Task> all = service.listAll(TaskService.SortBy.PRIORITY);
-            TestRunner.assertEquals(2, all.size(), "listAll().size()");
-        });
+            assertEquals(2, all.size(), "listAll().size()");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
     }
 
     // ---- helpers ----
@@ -124,7 +178,8 @@ public final class TaskServiceTest {
         try {
             return Priority.valueOf(name);
         } catch (IllegalArgumentException e) {
-            throw new UnsupportedOperationException("falta Priority." + name);
+            assumeTrue(false, "falta Priority." + name);
+            throw new AssertionError("unreachable");
         }
     }
 
@@ -132,7 +187,8 @@ public final class TaskServiceTest {
         try {
             return Status.valueOf(name);
         } catch (IllegalArgumentException e) {
-            throw new UnsupportedOperationException("falta Status." + name);
+            assumeTrue(false, "falta Status." + name);
+            throw new AssertionError("unreachable");
         }
     }
 

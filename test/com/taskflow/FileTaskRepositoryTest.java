@@ -4,85 +4,108 @@ import com.taskflow.model.Priority;
 import com.taskflow.model.Status;
 import com.taskflow.model.Task;
 import com.taskflow.repository.FileTaskRepository;
-import com.taskflow.testkit.TestRunner;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 /**
  * Tests para FileTaskRepository (parte en memoria + persistencia).
  *
- * Crea un archivo temporal por test para no ensuciar el proyecto.
- * Mientras los métodos lancen UnsupportedOperationException, se marcan SKIP.
+ * Usa @TempDir de JUnit 5 para crear directorios temporales por test,
+ * sin ensuciar el proyecto.
+ * Mientras los métodos lancen UnsupportedOperationException, se omiten (assumeTrue).
  */
-public final class FileTaskRepositoryTest {
+class FileTaskRepositoryTest {
 
-    public static void run(TestRunner t) {
-        System.out.println("== FileTaskRepositoryTest ==");
+    @TempDir
+    Path tempDir;
 
-        t.test("save + count + findById", () -> {
-            FileTaskRepository repo = newRepo();
-            Task task = sampleTask("id-1", "Tarea uno");
+    @Test
+    void savePlusCountPlusFindById() {
+        FileTaskRepository repo = newRepo();
+        Task task = sampleTask("id-1", "Tarea uno");
+        try {
             Task saved = repo.save(task);
-            TestRunner.assertEquals(task, saved, "save devuelve la misma entidad");
-            TestRunner.assertEquals(1L, repo.count(), "count tras 1 save");
+            assertEquals(task, saved, "save devuelve la misma entidad");
+            assertEquals(1L, repo.count(), "count tras 1 save");
             Optional<Task> found = repo.findById("id-1");
-            TestRunner.assertTrue(found.isPresent(), "findById debería encontrar la tarea");
-            TestRunner.assertEquals("Tarea uno", found.get().title(), "título recuperado");
-        });
+            assertTrue(found.isPresent(), "findById debería encontrar la tarea");
+            assertEquals("Tarea uno", found.get().title(), "título recuperado");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("findById de id inexistente devuelve Optional vacío", () -> {
-            FileTaskRepository repo = newRepo();
-            TestRunner.assertTrue(repo.findById("no-existe").isEmpty(),
+    @Test
+    void findByIdDeIdInexistenteDevuelveOptionalVacio() {
+        FileTaskRepository repo = newRepo();
+        try {
+            assertTrue(repo.findById("no-existe").isEmpty(),
                     "findById de id inexistente debe ser vacío");
-        });
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "findById aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("findAll devuelve todas las tareas guardadas", () -> {
-            FileTaskRepository repo = newRepo();
-            repo.save(sampleTask("a", "A"));
-            repo.save(sampleTask("b", "B"));
+    @Test
+    void findAllDevuelveTodasLasTareasGuardadas() {
+        FileTaskRepository repo = newRepo();
+        Task a = sampleTask("a", "A");
+        Task b = sampleTask("b", "B");
+        try {
+            repo.save(a);
+            repo.save(b);
             List<Task> all = repo.findAll();
-            TestRunner.assertEquals(2, all.size(), "findAll().size()");
-        });
+            assertEquals(2, all.size(), "findAll().size()");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("deleteById elimina y devuelve true; segunda vez false", () -> {
-            FileTaskRepository repo = newRepo();
-            repo.save(sampleTask("x", "X"));
-            TestRunner.assertTrue(repo.deleteById("x"), "primer delete devuelve true");
-            TestRunner.assertFalse(repo.deleteById("x"), "segundo delete devuelve false");
-            TestRunner.assertEquals(0L, repo.count(), "count tras borrar");
-        });
+    @Test
+    void deleteByIdEliminaYDevuelveTrueLuegaFalse() {
+        FileTaskRepository repo = newRepo();
+        Task x = sampleTask("x", "X");
+        try {
+            repo.save(x);
+            assertTrue(repo.deleteById("x"),  "primer delete devuelve true");
+            assertFalse(repo.deleteById("x"), "segundo delete devuelve false");
+            assertEquals(0L, repo.count(), "count tras borrar");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
+    }
 
-        t.test("flush + load: persiste y recupera desde archivo", () -> {
-            Path file = tempFile();
-            FileTaskRepository repo = new FileTaskRepository(file);
-            repo.save(sampleTask("persist-1", "Persistente"));
+    @Test
+    void flushPlusLoadPersistYRecuperaDesdeArchivo() {
+        Path file = tempDir.resolve("tasks.dat");
+        FileTaskRepository repo = new FileTaskRepository(file);
+        Task task = sampleTask("persist-1", "Persistente");
+        try {
+            repo.save(task);
             repo.flush();
 
             FileTaskRepository reloaded = new FileTaskRepository(file);
             reloaded.load();
             Optional<Task> found = reloaded.findById("persist-1");
-            TestRunner.assertTrue(found.isPresent(), "tras load debería existir la tarea");
-            TestRunner.assertEquals("Persistente", found.get().title(), "título tras recargar");
-        });
+            assertTrue(found.isPresent(), "tras load debería existir la tarea");
+            assertEquals("Persistente", found.get().title(), "título tras recargar");
+        } catch (UnsupportedOperationException e) {
+            assumeTrue(false, "método aún no implementado: " + e.getMessage());
+        }
     }
 
     // ---- helpers ----
 
-    private static FileTaskRepository newRepo() {
-        return new FileTaskRepository(tempFile());
-    }
-
-    private static Path tempFile() {
-        try {
-            Path dir = Files.createTempDirectory("taskflow-test");
-            return dir.resolve("tasks.dat");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    private FileTaskRepository newRepo() {
+        return new FileTaskRepository(tempDir.resolve("tasks-" + System.nanoTime() + ".dat"));
     }
 
     private static Task sampleTask(String id, String title) {
@@ -90,8 +113,9 @@ public final class FileTaskRepositoryTest {
             return new Task(id, title, "descripción", Priority.valueOf("MEDIUM"),
                     Status.valueOf("PENDING"), LocalDateTime.now(), null);
         } catch (IllegalArgumentException e) {
-            throw new UnsupportedOperationException(
+            assumeTrue(false,
                     "faltan constantes de Priority/Status (impleméntalas primero)");
+            throw new AssertionError("unreachable");
         }
     }
 }
